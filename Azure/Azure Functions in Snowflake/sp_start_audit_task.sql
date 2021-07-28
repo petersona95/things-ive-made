@@ -82,7 +82,7 @@ $$
 
     // INSERT NEW RECORD INTO AUDIT TABLE
     sql_stmt = `
-                INSERT INTO ` + DEST_DB + `.AUDIT.ETL_TASK (
+                INSERT INTO AUDIT.ETL_TASK (
                 TASK_KEY
                 , PARENT_TASK_KEY
                 , TASK_NAME
@@ -108,11 +108,11 @@ $$
                 FROM (SELECT 1 as i) init LEFT JOIN (
                     SELECT tsk.SYS_CHANGE_VERSION_END AS NEW_SYS_CHANGE_VERSION_START
                         ,tsk.CDC_MAX_DATE AS NEW_CDC_MIN_DATE
-                    FROM  ` + DEST_DB + `.AUDIT.ETL_TASK tsk
+                    FROM  AUDIT.ETL_TASK tsk
                     INNER JOIN (
                     SELECT PRIMARY_SOURCE_DATABASE_NAME, PRIMARY_SOURCE_SCHEMA_NAME,
                         PRIMARY_SOURCE_TABLE_NAME, MAX(EXECUTION_STOP_DATE) AS EXECUTION_STOP_DATE
-                    FROM  ` + DEST_DB + `.AUDIT.ETL_TASK
+                    FROM  AUDIT.ETL_TASK
                     WHERE PRIMARY_SOURCE_DATABASE_NAME = '` + SOURCE_DB + `'
                     AND PRIMARY_SOURCE_SCHEMA_NAME = '` + SOURCE_SCHEMA + `'
                     AND PRIMARY_SOURCE_TABLE_NAME = '` + SOURCE_TBL + `'
@@ -125,7 +125,7 @@ $$
                     AND dt.EXECUTION_STOP_DATE = tsk.EXECUTION_STOP_DATE) audit
                 ON 1=1)
             SELECT
-             ` + DEST_DB + `.AUDIT.SEQ_ETL_TASK.nextval
+             AUDIT.SEQ_ETL_TASK.nextval
             , '` + PARENT_TASK_KEY + `'
             , '` + TASK_NAME + `'
             , '` + TASK_GROUP + `'
@@ -164,10 +164,10 @@ $$
                SELECT TASK_KEY
                , SYS_CHANGE_VERSION_START
                , CDC_MIN_DATE
-               FROM ` + DEST_DB + `.AUDIT.ETL_TASK
+               FROM AUDIT.ETL_TASK
                WHERE TASK_KEY = (
                            SELECT MAX(TASK_KEY)
-                           FROM ` + DEST_DB + `.AUDIT.ETL_TASK
+                           FROM AUDIT.ETL_TASK
                            WHERE PRIMARY_SOURCE_DATABASE_NAME = '` + SOURCE_DB + `'
                            AND PRIMARY_SOURCE_SCHEMA_NAME =  '` + SOURCE_SCHEMA + `'
                            AND PRIMARY_SOURCE_TABLE_NAME = '` + SOURCE_TBL + `'
