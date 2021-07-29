@@ -1,29 +1,4 @@
-USE ROLE SYSADMIN_INTERNAL_DW;
-use warehouse DEMO_WH;
-
-call APT_DW.AUDIT.SP_START_AUDIT_TASK(
-    'APT_DW',
-    'GA',
-    'USER_TEST',
-    'VW_USER_TEST',
-    'COPPER',
-    'DATA',
-    'USER',
-    '',
-    '5b495ff7-50ec-4b51-8b93-9fee481475de',
-    '1234',
-    'Load Pipeline Test',
-    'Load APT_DW',
-    '0',
-    'N',
-    'etl-management',
-    'sql-queries',
-    'APT_DW_GA_USER_TEST_query.json',
-    'source',
-    'BLOB_CONTAINER'
-    )
-
-CREATE OR REPLACE PROCEDURE APT_DW.AUDIT.SP_START_AUDIT_TASK(DEST_DB VARCHAR, DEST_SCHEMA VARCHAR
+CREATE OR REPLACE PROCEDURE APT_DW.AUDIT.SP_START_AUDIT_TASK(AUDIT_DB VARCHAR, DEST_DB VARCHAR, DEST_SCHEMA VARCHAR
 , DEST_TBL VARCHAR, DEST_VIEW VARCHAR, SOURCE_DB VARCHAR, SOURCE_SCHEMA VARCHAR, SOURCE_TBL VARCHAR, PRIMARY_JOIN_KEYS VARCHAR
 , PIPELINE_RUN_ID VARCHAR, PARENT_TASK_KEY VARCHAR, TASK_NAME VARCHAR, TASK_GROUP VARCHAR, CDC_TYPE VARCHAR, FULL_LOAD_IND VARCHAR
 , SQL_CONTAINER VARCHAR, SQL_DIRECTORY VARCHAR, SQL_INSERT_FILE_NAME VARCHAR, SOURCE_TYPE VARCHAR, BLOB_CONTAINER VARCHAR)
@@ -58,6 +33,7 @@ $$
             "DESTINATION_VIEW_NAME" : DEST_VIEW,
             "SourceType" : SOURCE_TYPE,
             "BlobContainer" : BLOB_CONTAINER,
+	    "AuditDB": AUDIT_DB,
             "Status" : "Unknown",
             "ErrorMessage" : "None"
             }
@@ -82,7 +58,7 @@ $$
 
     // INSERT NEW RECORD INTO AUDIT TABLE
     sql_stmt = `
-                INSERT INTO AUDIT.ETL_TASK (
+                INSERT INTO ` + AUDIT_DB + `.AUDIT.ETL_TASK (
                 TASK_KEY
                 , PARENT_TASK_KEY
                 , TASK_NAME
@@ -108,11 +84,11 @@ $$
                 FROM (SELECT 1 as i) init LEFT JOIN (
                     SELECT tsk.SYS_CHANGE_VERSION_END AS NEW_SYS_CHANGE_VERSION_START
                         ,tsk.CDC_MAX_DATE AS NEW_CDC_MIN_DATE
-                    FROM  AUDIT.ETL_TASK tsk
+                    FROM  ` + AUDIT_DB + `.AUDIT.ETL_TASK tsk
                     INNER JOIN (
                     SELECT PRIMARY_SOURCE_DATABASE_NAME, PRIMARY_SOURCE_SCHEMA_NAME,
                         PRIMARY_SOURCE_TABLE_NAME, MAX(EXECUTION_STOP_DATE) AS EXECUTION_STOP_DATE
-                    FROM  AUDIT.ETL_TASK
+                    FROM  ` + AUDIT_DB + `.AUDIT.ETL_TASK
                     WHERE PRIMARY_SOURCE_DATABASE_NAME = '` + SOURCE_DB + `'
                     AND PRIMARY_SOURCE_SCHEMA_NAME = '` + SOURCE_SCHEMA + `'
                     AND PRIMARY_SOURCE_TABLE_NAME = '` + SOURCE_TBL + `'
@@ -125,7 +101,7 @@ $$
                     AND dt.EXECUTION_STOP_DATE = tsk.EXECUTION_STOP_DATE) audit
                 ON 1=1)
             SELECT
-             AUDIT.SEQ_ETL_TASK.nextval
+             ` + AUDIT_DB + `.AUDIT.SEQ_ETL_TASK.nextval
             , '` + PARENT_TASK_KEY + `'
             , '` + TASK_NAME + `'
             , '` + TASK_GROUP + `'
@@ -164,10 +140,10 @@ $$
                SELECT TASK_KEY
                , SYS_CHANGE_VERSION_START
                , CDC_MIN_DATE
-               FROM AUDIT.ETL_TASK
+               FROM ` + AUDIT_DB + `.AUDIT.ETL_TASK
                WHERE TASK_KEY = (
                            SELECT MAX(TASK_KEY)
-                           FROM AUDIT.ETL_TASK
+                           FROM ` + AUDIT_DB + `.AUDIT.ETL_TASK
                            WHERE PRIMARY_SOURCE_DATABASE_NAME = '` + SOURCE_DB + `'
                            AND PRIMARY_SOURCE_SCHEMA_NAME =  '` + SOURCE_SCHEMA + `'
                            AND PRIMARY_SOURCE_TABLE_NAME = '` + SOURCE_TBL + `'
