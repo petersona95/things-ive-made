@@ -1,6 +1,3 @@
-USE [ChargeIntegrityMetrics_DW]
-GO
-
 /****** Object:  StoredProcedure [dbo].[GenerateDimDate]    Script Date: 1/2/2020 10:25:58 AM ******/
 SET ANSI_NULLS ON
 GO
